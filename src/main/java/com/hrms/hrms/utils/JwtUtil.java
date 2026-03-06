@@ -9,7 +9,6 @@ import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class JwtUtil {
@@ -39,8 +38,10 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
-    public String generateToken(String userDetails) {
+    public String generateToken(String userDetails, String role, Long employeeId) {
         HashMap<String,Object> claims= new HashMap<>();
+        claims.put("role", role);
+        claims.put("employeeId", employeeId);
         return  createToken(claims,userDetails);
     }
 
@@ -49,7 +50,7 @@ public class JwtUtil {
                     .claims(claims)
                     .subject(userDetails)
                     .issuedAt(new Date(System.currentTimeMillis()))
-                    .expiration(new Date(System.currentTimeMillis()+1000*60*1))
+                    .expiration(new Date(System.currentTimeMillis()+1000*60*60))
                     .signWith(getSignInKey())
                     .compact();
     }

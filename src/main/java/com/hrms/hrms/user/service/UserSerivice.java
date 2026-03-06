@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,6 +45,7 @@ public class UserSerivice {
     private final BCryptPasswordEncoder encoder= new BCryptPasswordEncoder(12);
     public UserResponse addUser(UserRequest user) {
         user.setPassword(encoder.encode(user.getPassword()));
+        user.setRole(user.getRole().toUpperCase());
         Employee emp= empRepo.findById(user.getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee not found"));
         Users usr= toEntity(user,emp);
         Users savedUser = repo.save(usr);
@@ -65,8 +67,36 @@ public class UserSerivice {
                     .username(user.getUsername())
                     .password(user.getPassword())
                     .roles(user.getRole())
+
                     .build();
         }
         throw new RuntimeException("User not found with username: " + username);
+    }
+
+    public Long getEmployeeIdByUsername(String username) {
+        Users user = repo.findByUsername(username);
+        if (user != null) {
+            return user.getEmployee().getId();
+        }
+        throw new RuntimeException("User not found with username: " + username);
+    }
+
+    public UserResponse updateUser(Long id, UserRequest user) {
+        Users existingUser = repo.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        existingUser.setUsername(user.getUsername());
+        existingUser.setEmployee(user.getEmployeeId() != null ? empRepo.findById(user.getEmployeeId()).orElseThrow(() -> new RuntimeException("Employee not found")) : existingUser.getEmployee());
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existingUser.setPassword(encoder.encode(user.getPassword()));
+        }
+        existingUser.setRole(user.getRole() != null ? user.getRole().toUpperCase() : existingUser.getRole());
+        Users updatedUser = repo.save(existingUser);
+        return toResponse(updatedUser);
+    }
+
+    public void deleteUser(Long id) {
+        if (!repo.existsById(id)) {
+            throw new RuntimeException("User not found with id: " + id);
+        }
+        repo.deleteById(id);
     }
 }

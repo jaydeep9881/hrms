@@ -13,10 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,12 +44,31 @@ public class UserController {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
             UserDetails userDetails= serivice.loadUserByUsername(user.getUsername());
-            String token= jwtUtil.generateToken(userDetails.getUsername());
+            String role = userDetails.getAuthorities()
+                    .iterator()
+                    .next()
+                    .getAuthority();
+            // Get employeeId from database not from request
+             System.out.println(userDetails.toString());
+             Long employeeId = serivice.getEmployeeIdByUsername(user.getUsername());
+            String token= jwtUtil.generateToken(userDetails.getUsername(),role,employeeId);
             return new ResponseEntity<>(token,HttpStatus.OK);
         }catch (Exception e) {
             return  new ResponseEntity<>("no usert found",HttpStatus.UNAUTHORIZED);
         }
 
+    }
+    // Update user
+    @PutMapping("/users/{id}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserRequest user) {
+        return ResponseEntity.ok(serivice.updateUser(id, user));
+    }
+
+    // Delete user
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+        serivice.deleteUser(id);
+        return ResponseEntity.ok("User deleted successfully");
     }
 }
 
